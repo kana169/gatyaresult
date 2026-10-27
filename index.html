@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="ガチャの狙いキャラが今後出る確率を、引いた結果に合わせて計算・可視化するツール。天井・すり抜け・保証に対応。">
+<meta name="theme-color" content="#5b4bd6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AF%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>ガチャ確率トラッカー</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f3f1f8;--panel:#fff;--ink:#1c1a33;--sub:#6d6a86;--line:#dedbeb;--gold:#c98a00;--hit:#1f9d8f;--miss:#d23f68;--acc:#5b4bd6;--soft:#ece9f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12112a;--panel:#1c1b3a;--ink:#eeecff;--sub:#a29fc6;--line:#33315c;--gold:#f2b632;--hit:#43d1c0;--miss:#ff6b91;--acc:#9d8cff;--soft:#26244a}}
+:root[data-theme="dark"]{--bg:#12112a;--panel:#1c1b3a;--ink:#eeecff;--sub:#a29fc6;--line:#33315c;--gold:#f2b632;--hit:#43d1c0;--miss:#ff6b91;--acc:#9d8cff;--soft:#26244a}
+*,*:before,*:after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;line-height:1.6}
+main{max-width:920px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px;font-weight:900}
+h2{font-size:16px;margin:0 0 12px;font-weight:700}
+.lead{color:var(--sub);margin:0 0 18px;font-size:14px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+select{max-width:100%;min-width:0;text-overflow:ellipsis}
+label{min-width:0}
+.pnote{display:none;margin:8px 0 12px;padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13px;line-height:1.7}.pnote.show{display:block}.pnote .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:700;margin-right:6px;background:var(--panel);border:1px solid var(--line)}
+.sep{border-top:1px solid var(--line);margin:18px 0 14px}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:stretch}
+@media(max-width:700px){.hero{grid-template-columns:1fr}}
+.big{font-size:56px;font-weight:900;line-height:1;color:var(--gold)}
+.big small{font-size:22px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:22px}
+.stat span{font-size:12px;color:var(--sub)}
+.bar{display:flex;height:34px;border-radius:8px;overflow:hidden;margin:8px 0;font-size:13px;font-weight:700;color:#fff}
+.bar div{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap}
+.bar .h{background:var(--hit)}.bar .m{background:var(--miss)}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700}
+.on{background:var(--gold);color:#1c1a33}.off{background:var(--soft);color:var(--sub)}.got{background:var(--hit);color:#0d2a27}
+.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:560px){.btns{grid-template-columns:1fr}}
+button{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 8px;cursor:pointer;color:#fff}
+button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.b1{background:var(--hit);color:#0d2a27}.b2{background:var(--miss)}.b3{background:var(--acc)}
+.ghost{background:transparent;color:var(--sub);border:1px solid var(--line);padding:8px 12px;font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--sub)}
+label.chk{flex-direction:row;align-items:center;gap:8px;font-size:14px;color:var(--ink)}
+input[type=number]{font:inherit;font-size:15px;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+input[type=text]{font:inherit;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+.changes{margin:12px 0 0;padding:10px 12px;background:var(--soft);border-radius:10px;font-size:14px;display:none}
+.changes.show{display:block}
+.changes div{margin:2px 0}
+.arrow{font-weight:900;color:var(--acc)}
+.nbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.nbtns button{background:var(--soft);color:var(--ink);border:2px solid transparent;padding:12px 6px}
+.nbtns button.sel{background:var(--acc);color:#fff}
+.nres{margin:12px 0 4px;padding:14px;border-radius:12px;background:var(--soft);text-align:center}
+.nres .big{font-size:44px}
+.nchips{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.nchip{background:var(--soft);border-radius:10px;padding:10px;text-align:center}
+.nchip b{display:block;font-size:24px;color:var(--gold)}
+.nchip span{font-size:12px;color:var(--sub)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:360px}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}th{color:var(--sub);font-weight:700;font-size:12px}td.bc{width:45%;text-align:left}.tb{height:10px;border-radius:5px;background:var(--soft);overflow:hidden}.tb i{display:block;height:100%;background:var(--gold)}tr.ceil td{font-weight:900;color:var(--gold)}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--sub);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.hist{font-size:13px;color:var(--sub);max-height:120px;overflow:auto;margin-top:10px}
+details summary{cursor:pointer;font-weight:700;font-size:16px}
+.note{font-size:12px;color:var(--sub);margin:10px 0 0}
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px">このツールはJavaScriptを有効にすると使えます。</p></noscript>
+<main>
+<h1>ガチャ確率トラッカー</h1>
+<p class="lead">引いた結果を入力するたびに、狙いキャラが出る確率を計算し直します。</p>
+
+<section>
+<div class="hero" aria-live="polite">
+  <div>
+    <h2>🎯 <span id="tName">狙いキャラ</span></h2>
+    <div id="heroMain"></div>
+    <div class="row" id="badges"></div>
+  </div>
+  <div>
+    <div class="stats">
+      <div class="stat"><span>🔢 現在のガチャ回数</span><b id="sTotal">0</b></div>
+      <div class="stat"><span>🔥 天井までの回数</span><b id="sPity">-</b></div>
+      <div class="stat"><span>🛡️ 保証状態</span><b id="sGuar">-</b></div>
+      <div class="stat"><span>⭐ 次の最高レアまで(期待)</span><b id="sNext">-</b></div>
+    </div>
+    <div id="nbLabel" style="margin-top:12px;font-size:13px;color:var(--sub)">⭐ 次の最高レアの内訳</div>
+    <div class="bar" id="nextBar"></div>
+  </div>
+</div>
+
+<div class="sep"></div>
+  <h2>ガチャ結果を入力して、確率を見る</h2>
+  <div class="btns">
+    <button class="b1" data-r="target">🎯 狙いキャラ</button>
+    <button class="b2" data-r="off">💔 狙い以外の最高レア</button>
+    <button class="b3" data-r="other">その他 ×<span id="oc">1</span></button>
+  </div>
+  <div class="row">
+    <label style="width:140px">「その他」の回数（10連なら10）<input type="number" id="otherCount" min="1" max="200" value="1"></label>
+    <button class="ghost" id="undo">↩ 1つ戻す</button>
+    <button class="ghost" id="reset">状態をリセット</button>
+  </div>
+  <div class="changes" id="changes" aria-live="polite"></div>
+  <div class="sep"></div>
+  <h2>📊 今後N回以内に1回以上出る確率</h2>
+  <div class="nbtns" id="nbtns"></div>
+  <div class="nres" id="nres" aria-live="polite"></div>
+  <div class="row"><label style="width:150px">好きな回数<input type="number" id="customN" min="1" max="400" value="100"></label><button class="b3" id="calcBtn" style="padding:10px 18px">この回数で計算</button></div>
+  <div class="hist" id="hist"></div>
+  <div class="sep"></div>
+  <h2>確率表（今の状態から）</h2>
+  <div style="overflow-x:auto"><table id="ptable"></table></div>
+  <p class="note">「今の状態」から数えて、狙いキャラが1回以上出る確率です。天井の行は確定（100%）になります。</p>
+</section>
+
+<section>
+  <h2>累積確率のグラフ</h2>
+  <div id="chart1"></div>
+  <div class="legend"><span><i style="background:var(--gold)"></i>今の状態から</span><span><i style="background:var(--sub)"></i>保証なし・カウント0から（比較）</span></div>
+  <p class="note">縦の点線と丸印は目安の回数（リセット式は10/30/50回、ポイント式は50/100/150/200回）、赤丸は天井（最高レア確定）のタイミングです。</p>
+</section>
+
+<section>
+  <h2>1回ごとの最高レア確率（天井カーブ）</h2>
+  <div id="chart2"></div>
+  <div class="legend"><span><i style="background:var(--acc)"></i>最高レアが出る確率</span><span><i style="background:var(--hit)"></i>今の状態で狙いが出る確率</span></div>
+</section>
+
+<section>
+  <details>
+    <summary>⚙️ ガチャの設定 / 現在の状態を直接編集</summary>
+    <label style="margin-bottom:6px">🎮 ゲームから選んで設定する
+      <select id="preset" style="font:inherit;font-size:15px;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%"></select></label>
+    <div class="pnote" id="pnote" aria-live="polite"></div>
+    <div class="row"><label style="width:220px">天井のタイプ<select id="mode" style="font:inherit;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)"><option value="reset">リセット式（最高レアでカウント0）</option><option value="point">ポイント式（1回=1pt、リセットなし）</option></select></label></div>
+    <h2 style="margin-top:14px">ルール</h2>
+    <div class="grid">
+      <label>狙いキャラの名前<input type="text" id="name" value="狙いキャラ"></label>
+      <label>ポイント式：狙いキャラ1回あたりの確率（%）<input type="number" id="pRate" step="0.01" min="0" max="100"></label>
+      <label>最高レア基本確率（%）<input type="number" id="base" step="0.01" min="0" max="100"></label>
+      <label>天井（回で最高レア確定）<input type="number" id="hard" min="1" max="500"></label>
+      <label>確率アップ開始（回目・0で無し）<input type="number" id="softStart" min="0" max="500"></label>
+      <label>アップ幅（1回ごと +%）<input type="number" id="softInc" step="0.01" min="0" max="100"></label>
+      <label>最高レア中の狙い排出率（%）<input type="number" id="tRate" step="0.1" min="0" max="100"></label>
+      <label>保証中の狙い排出率（%）<input type="number" id="gRate" step="0.1" min="0" max="100"></label>
+    </div>
+    <div class="row"><label class="chk"><input type="checkbox" id="guarOn"> すり抜けたら次の最高レアは保証状態になる</label></div>
+    <h2 style="margin-top:16px">現在の状態</h2>
+    <div class="grid">
+      <label>総ガチャ回数<input type="number" id="eTotal" min="0"></label>
+      <label>天井カウント（最後の最高レアから何回目）<input type="number" id="ePity" min="0"></label>
+    </div>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="eGuar"> 保証状態</label>
+      <label class="chk"><input type="checkbox" id="eGot"> 狙いキャラ入手済み</label>
+    </div>
+    <p class="note">例：最高レア0.6%、天井90、74回目から+6%ずつ、狙い50%、すり抜け後は100%。数値はゲームごとに変えてください。</p>
+  </details>
+</section>
+</main>
+
+<script>
+const DEF={cfg:{name:"ピックアップキャラ",base:0.6,hard:250,softStart:0,softInc:6,tRate:50,gRate:100,guarOn:true,mode:"point",pRate:0.7},st:{total:0,pity:0,guar:false,got:false},hist:[]};
+let selN=50;
+let S=JSON.parse(JSON.stringify(DEF));
+try{const x=localStorage.getItem("gacha-v1");if(x){const o=JSON.parse(x);if(o&&o.cfg&&o.st)S=o}}catch(e){}
+S.cfg=Object.assign({},DEF.cfg,S.cfg);
+const $=id=>document.getElementById(id);
+const save=()=>{try{localStorage.setItem("gacha-v1",JSON.stringify(S))}catch(e){}};
+const pct=(x,d=1)=>(x*100).toFixed(d)+"%";
+
+function rate(k){const c=S.cfg;let r=c.base/100;
+  if(c.softStart>0&&k>=c.softStart)r=Math.min(1,r+(k-c.softStart+1)*c.softInc/100);
+  if(k>=c.hard)r=1;return Math.min(1,r)}
+function q(g){return (g&&S.cfg.guarOn?S.cfg.gRate:S.cfg.tRate)/100}
+
+// 状態(pity, guar)の確率分布を1回ずつ進め、狙いの累積確率を返す
+function project(pity,guar,N){
+  if(S.cfg.mode==="point"){const p=S.cfg.pRate/100,cm=[0];let ms=1;for(let n=1;n<=N;n++){ms*=1-p;cm.push(pity+n>=S.cfg.hard?1:1-ms)}return cm}
+  const H=S.cfg.hard,cum=[0];let cur=[new Float64Array(H+1),new Float64Array(H+1)];
+  cur[guar?1:0][Math.min(pity,H-1)]=1;let acc=0;
+  for(let n=1;n<=N;n++){
+    const nx=[new Float64Array(H+1),new Float64Array(H+1)];
+    for(let g=0;g<2;g++)for(let c=0;c<H;c++){const p=cur[g][c];if(!p)continue;
+      const r=rate(c+1),t=q(g);
+      acc+=p*r*t;
+      const miss=p*r*(1-t);nx[S.cfg.guarOn?1:0][0]+=miss;
+      if(r<1&&c+1<H)nx[g][c+1]+=p*(1-r);}
+    cur=nx;cum.push(acc);}
+  return cum}
+
+function expNext(pity){if(S.cfg.mode==="point"){const p=S.cfg.pRate/100,L=Math.max(0,S.cfg.hard-pity);let e=0;for(let k=0;k<L;k++)e+=Math.pow(1-p,k);return e}
+let s=0,surv=1;for(let k=pity+1;k<=S.cfg.hard+pity+1&&surv>1e-9;k++){const r=rate(k);s+=surv;surv*=1-r;if(r>=1)break}return s}
+
+function snap(){const t=S.st,c=t.pity,H=S.cfg.hard;
+  return {total:t.total,pity:c,left:H-c,guar:t.guar,got:t.got,p50:t.got?1:project(c,t.guar,50)[50]}}
+
+function line(pts,xmax,ymax,w,h,pad,color,dash){
+  const X=x=>pad.l+(x/xmax)*(w-pad.l-pad.r),Y=y=>h-pad.b-(y/ymax)*(h-pad.t-pad.b);
+  return `<polyline fill="none" stroke="${color}" stroke-width="2.5" ${dash?'stroke-dasharray="5 4"':''} points="${pts.map(p=>X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join(" ")}"/>`}
+
+function frame(xmax,ymax,ylab,marks,w=640,h=260){
+  const pad={l:44,r:14,t:12,b:28};
+  const X=x=>pad.l+(x/xmax)*(w-pad.l-pad.r),Y=y=>h-pad.b-(y/ymax)*(h-pad.t-pad.b);
+  let s="";
+  for(let i=0;i<=4;i++){const v=ymax*i/4;s+=`<line x1="${pad.l}" x2="${w-pad.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pad.l-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--sub)">${ylab(v)}</text>`}
+  const step=xmax>150?50:xmax>60?20:10;
+  for(let x=0;x<=xmax;x+=step)s+=`<text x="${X(x)}" y="${h-8}" text-anchor="middle" font-size="11" fill="var(--sub)">${x}</text>`;
+  (marks||[]).forEach(m=>{if(m<=xmax)s+=`<line x1="${X(m)}" x2="${X(m)}" y1="${pad.t}" y2="${h-pad.b}" stroke="var(--sub)" stroke-dasharray="2 4" opacity=".6"/>`});
+  return {s,pad,w,h,X,Y}}
+
+function render(){
+  const c=S.cfg,t=S.st,H=c.hard;
+  const point=c.mode==="point";
+  $("tName").textContent=c.name||"狙いキャラ";
+  $("sTotal").textContent=t.total;
+  $("sPity").textContent=t.got?"-":H-t.pity+"回";
+  $("sGuar").innerHTML=point&&!t.got?'<span class="pill off">なし</span>':t.got?'<span class="pill got">入手済み</span>':'<span class="pill '+(t.guar?"on":"off")+'">'+(t.guar?"ON":"OFF")+"</span>";
+  const pt=point?c.pRate/100:q(t.guar);
+  const N=selN;
+  const M=Math.max(N,200,H-t.pity),cum=t.got?null:project(t.pity,t.guar,M);
+  $("sNext").textContent=t.got?"-":"約"+expNext(t.pity).toFixed(0)+"回";
+  $("nbLabel").textContent=point?"次の1回の内訳":"⭐ 次の最高レアの内訳";
+  $("sNext").previousElementSibling.textContent=point?"🎯 出るまで(期待回数)":"⭐ 次の最高レアまで(期待)";
+  $("badges").innerHTML=t.got?'<span class="pill got">入手済み</span>':`<span class="pill ${t.guar&&!point?"on":"off"}">🛡️ ${point?"ポイント式天井":"保証 "+(t.guar?"ON":"OFF")}</span><span class="pill off">天井まで ${H-t.pity} 回</span>`;
+  $("heroMain").innerHTML=t.got?'<div class="big">🎉</div><p>入手済みです。リセットして次のガチャに進めます。</p>':
+    `<div style="font-size:13px;color:var(--sub)">今後50回以内に出る確率</div><div class="big">${(cum[50]*100).toFixed(1)}<small>%</small></div><p style="font-size:13px;color:var(--sub);margin:8px 0 0">次の1回で狙いが出る確率 ${pct(cum[1],2)}</p>`;
+  const hv=t.got?0:pt;
+  $("nextBar").innerHTML=t.got?'<div class="m" style="flex:1;background:var(--soft);color:var(--sub)">—</div>':
+    `<div class="h" style="flex:${Math.max(hv,.001)}">${hv>.08?"狙い "+pct(hv,0):""}</div><div class="m" style="flex:${Math.max(1-hv,.001)};${1-hv<.08?"display:none":""}">${1-hv>.08?"狙い以外 "+pct(1-hv,0):""}</div>`;
+  if(!t.got)$("nextBar").title="狙い "+pct(hv)+" / 狙い以外 "+pct(1-hv);
+  const left0=Math.max(1,H-t.pity),opts=[10,20,30,40,50,100].filter(n=>n<left0);opts.push(left0);
+  $("nbtns").innerHTML=opts.map(n=>`<button data-n="${n}" class="${n===N?"sel":""}">${n===left0?"天井まで<br>"+n+"回":"今後"+n+"回"}</button>`).join("");
+  $("nbtns").querySelectorAll("button").forEach(b=>b.onclick=()=>{selN=+b.dataset.n;render()});
+  $("nres").innerHTML=t.got?"入手済みです":`<div style="font-size:13px;color:var(--sub)">今後${N}回以内に1回以上出る確率</div><div class="big">${(cum[N]*100).toFixed(1)}<small>%</small></div><div style="font-size:13px;color:var(--sub)">出ない確率 ${pct(1-cum[N])}</div>`;
+  const left=H-t.pity,ns=[1,10,20,30,50,80,100,150,200].filter(n=>n<left);ns.push(left);
+  $("ptable").innerHTML=t.got?"<tr><td>入手済みです</td></tr>":"<tr><th>回数</th><th>出る確率</th><th>出ない確率</th><th></th></tr>"+ns.map(n=>{const v=cum[n];return `<tr class="${n===left?"ceil":""}"><td>${n}回${n===left?"（天井）":""}</td><td>${pct(v)}</td><td>${pct(1-v)}</td><td class="bc"><div class="tb"><i style="width:${(v*100).toFixed(1)}%"></i></div></td></tr>`}).join("");
+  $("oc").textContent=Math.max(1,+$("otherCount").value||1);
+  charts(cum,M);
+  renderPreset();
+  $("undo").disabled=!S.hist.length;
+  $("hist").innerHTML=S.hist.slice(-8).reverse().map(h=>h.label).join("<br>");
+  $("eTotal").value=t.total;$("ePity").value=t.pity;$("eGuar").checked=t.guar;$("eGot").checked=t.got;
+}
+
+function charts(cum,M){
+  const H=S.cfg.hard,t=S.st;
+  const xm=Math.max(M,Math.min(200,Math.max(50,H*2)));
+  const fresh=project(0,false,xm),cur=t.got?null:project(t.pity,t.guar,xm);
+  const pm1=S.cfg.mode==="point",MK=pm1?[50,100,150,200]:[10,30,50];
+  const f=frame(xm,1,v=>Math.round(v*100)+"%",MK);
+  const P=a=>a.map((v,i)=>[i,v]);
+  let s=f.s;
+  if(!(pm1&&t.pity===0))s+=line(P(fresh),xm,1,f.w,f.h,f.pad,"var(--sub)",true);
+  if(cur){s+=line(P(cur),xm,1,f.w,f.h,f.pad,"var(--gold)");
+    MK.forEach(n=>{if(n<=xm)s+=`<circle cx="${f.X(n)}" cy="${f.Y(cur[n])}" r="4" fill="var(--gold)"/><text x="${f.X(n)+5}" y="${f.Y(cur[n])-7}" font-size="13" font-weight="700" fill="var(--ink)">${(cur[n]*100).toFixed(0)}%</text>`});
+    const left=H-t.pity;if(left<=xm)s+=`<circle cx="${f.X(left)}" cy="${f.Y(cur[left])}" r="6" fill="none" stroke="var(--miss)" stroke-width="2.5"/><text x="${f.X(left)}" y="${f.Y(cur[left])+20}" text-anchor="middle" font-size="11" fill="var(--miss)">天井</text>`}
+  $("chart1").innerHTML=`<svg viewBox="0 0 ${f.w} ${f.h}" role="img" aria-label="今後の累積確率グラフ">${s}</svg>`;
+
+  const f2=frame(H,1,v=>Math.round(v*100)+"%",[]);
+  const top=[],hit=[],pm=S.cfg.mode==="point";for(let k=1;k<=H;k++){const v=pm?(k<H?S.cfg.pRate/100:1):rate(k);top.push([k,v]);hit.push([k,pm?v:v*q(t.guar)])}
+  let s2=f2.s+line(top,H,1,f2.w,f2.h,f2.pad,"var(--acc)")+line(hit,H,1,f2.w,f2.h,f2.pad,"var(--hit)",true);
+  if(!t.got){const k=Math.max(1,t.pity+1);s2+=`<line x1="${f2.X(k)}" x2="${f2.X(k)}" y1="${f2.pad.t}" y2="${f2.h-f2.pad.b}" stroke="var(--gold)" stroke-width="2"/><text x="${Math.min(f2.X(k)+5,f2.w-70)}" y="${f2.pad.t+12}" font-size="11" fill="var(--gold)">次の1回</text>`}
+  $("chart2").innerHTML=`<svg viewBox="0 0 ${f2.w} ${f2.h}" role="img" aria-label="天井カーブ">${s2}</svg>`;
+}
+
+function showChanges(a,b,label){
+  const rows=[];
+  const add=(n,x,y)=>{if(x!==y)rows.push(`<div>${n}：${x} <span class="arrow">→</span> ${y}</div>`)};
+  add("🔢 ガチャ回数",a.total,b.total);
+  add("🔥 天井カウント",a.pity,b.pity);
+  add("🔥 天井まで",a.left+"回",b.left+"回");
+  add("🛡️ 保証",a.guar?"ON":"OFF",b.guar?"ON":"OFF");
+  add("🎯 入手",a.got?"済":"未",b.got?"済":"未");
+  if(!b.got)add("📊 50回以内",pct(a.p50),pct(b.p50));else rows.push("<div>🎉 狙いキャラを入手しました</div>");
+  const el=$("changes");el.innerHTML=`<div><b>${label}</b></div>`+rows.join("");el.classList.add("show")}
+
+function record(kind){
+  const t=S.st;if(t.got&&kind!=="other")return;
+  const before=snap(),prev=JSON.parse(JSON.stringify(t));
+  const n=kind==="other"?Math.max(1,Math.min(200,+$("otherCount").value||1)):1;
+  let label;
+  if(kind==="target"){t.total++;t.pity=S.cfg.mode==="point"?Math.min(S.cfg.hard,t.pity+1):0;t.got=true;t.guar=false;label="🎯 狙いキャラ"}
+  else if(kind==="off"){t.total++;if(S.cfg.mode==="point")t.pity=Math.min(S.cfg.hard,t.pity+1);else{t.pity=0;t.guar=S.cfg.guarOn}label="💔 狙い以外の最高レア"}
+  else{t.total+=n;t.pity=Math.min(S.cfg.mode==="point"?S.cfg.hard:S.cfg.hard-1,t.pity+n);label="その他 ×"+n}
+  S.hist.push({prev,label:label+"（"+t.total+"回目）"});if(S.hist.length>200)S.hist.shift();
+  save();render();showChanges(before,snap(),label)}
+
+document.querySelectorAll(".btns button").forEach(b=>b.onclick=()=>record(b.dataset.r));
+$("undo").onclick=()=>{const h=S.hist.pop();if(!h)return;const b=snap();S.st=h.prev;save();render();showChanges(b,snap(),"↩ 1つ戻しました")};
+let rsT=null;
+$("reset").onclick=()=>{const b=$("reset");
+  if(!rsT){b.textContent="もう一度押すとリセット";rsT=setTimeout(()=>{b.textContent="状態をリセット";rsT=null},3000);return}
+  clearTimeout(rsT);rsT=null;b.textContent="状態をリセット";
+  S.st={total:0,pity:0,guar:false,got:false};S.hist=[];save();render();$("changes").classList.remove("show")};
+$("otherCount").oninput=()=>{$("oc").textContent=Math.max(1,+$("otherCount").value||1)};
+$("calcBtn").onclick=()=>{selN=Math.max(1,Math.min(400,Math.round(+$("customN").value||100)));render()};
+
+const cfgMap={pRate:1,name:"text",base:1,hard:1,softStart:1,softInc:1,tRate:1,gRate:1};
+Object.keys(cfgMap).forEach(k=>{const e=$(k);e.value=S.cfg[k];e.oninput=()=>{S.preset="";
+  if(k==="name")S.cfg.name=e.value;
+  else{let v=parseFloat(e.value);if(isNaN(v))return;if(k==="hard")v=Math.max(1,Math.round(v));S.cfg[k]=v;
+    S.st.pity=Math.min(S.st.pity,S.cfg.hard-1)}
+  save();render()}});
+$("mode").value=S.cfg.mode;$("mode").onchange=e=>{S.preset="";S.cfg.mode=e.target.value;save();render()};
+$("guarOn").checked=S.cfg.guarOn;$("guarOn").onchange=e=>{S.cfg.guarOn=e.target.checked;if(!S.cfg.guarOn)S.st.guar=false;save();render()};
+$("eTotal").onchange=e=>{S.st.total=Math.max(0,parseInt(e.target.value)||0);save();render()};
+$("ePity").onchange=e=>{S.st.pity=Math.max(0,Math.min(S.cfg.hard-1,parseInt(e.target.value)||0));save();render()};
+$("eGuar").onchange=e=>{S.st.guar=e.target.checked;save();render()};
+$("eGot").onchange=e=>{S.st.got=e.target.checked;save();render()};
+
+const PRESETS=[
+ {n:"ファンパレ（呪術廻戦ファントムパレード）",c:"ok",cfg:{name:"PUキャラ",mode:"point",pRate:0.7,hard:250},
+  t:"ピックアップキャラは1ptずつたまり250ptで入手（SSRが出てもリセットなし）。PU単体0.7%はご本人の情報。SSRキャラ全体は2.5%。"},
+ {n:"原神（キャラ限定）",c:"part",cfg:{name:"原神 PUキャラ",mode:"reset",base:0.6,hard:90,softStart:74,softInc:6,tRate:55,gRate:100,guarOn:true},
+  t:"★5は0.6%、90連で確定。外れると次の★5はPU確定。PU率は掴みし明光込みの55%。74連目から+6%ずつ上がるのは非公式の推定値。3連続すり抜けで確定する仕様は未反映。"},
+ {n:"崩壊：スターレイル（キャラ）",c:"part",cfg:{name:"スタレ PUキャラ",mode:"reset",base:0.6,hard:90,softStart:74,softInc:6,tRate:50,gRate:100,guarOn:true},
+  t:"★5は0.6%、90連で確定、PUは50%で外れると次はPU確定（最大180連）。ソフト天井は「70連台から」とされ、74連目から+6%は推定。捕獲明光などの追加ルールは確認できず未反映。"},
+ {n:"ゼンレスゾーンゼロ（限定エージェント）",c:"part",cfg:{name:"ゼンゼロ PUエージェント",mode:"reset",base:0.6,hard:90,softStart:75,softInc:6,tRate:50,gRate:100,guarOn:true},
+  t:"S級は0.6%、90連で確定、PU50%で外れると次は確定。公式発表は基礎確率と確定天井のみで、75連目からの上昇（+6%）は集計に基づく非公式値。"},
+ {n:"鳴潮（限定キャラ）",c:"low",cfg:{name:"鳴潮 PUキャラ",mode:"reset",base:0.8,hard:80,softStart:66,softInc:4,tRate:50,gRate:100,guarOn:true},
+  t:"80連で★5確定、PU50%で外れると次は確定（最大160連）。基礎確率0.8%は解説記事で限定は0.6%とする記述もあり食い違い。ソフト天井（66連目・+4%）は確認できず仮置きなので、ゲーム内の表示で確認してください。"},
+ {n:"ブルーアーカイブ（PU生徒）",c:"ok",cfg:{name:"ブルアカ PU生徒",mode:"point",pRate:0.7,hard:200},
+  t:"PU生徒単体0.7%（★3全体3%）。呼び出しチャージが200で必ずPU生徒を入手。入手するまでカウントは消えず、次のPUにも持ち越し。100チャージで★3確定（PU50%）は未反映。"},
+ {n:"FGO（期間限定ピックアップ）",c:"low",cfg:{name:"FGO PU★5",mode:"point",pRate:0.7,hard:330},
+  t:"329回で出なければ330回目でPU★5が確定（ピックアップごとにカウント、持ち越し不可）。★5全体は1%。PU単体の確率は記事で確認できず、1騎ピックアップの目安0.7%を仮置き。ゲーム内の提供割合で確認してください。"},
+ {n:"ウマ娘（ピックアップ）",c:"low",cfg:{name:"ウマ娘 PU",mode:"point",pRate:0.75,hard:200},
+  t:"ジュエル30,000個＝200連が天井の目安（記事の記載）。★3全体は3%。PU単体の0.75%は確認できず仮置き。ウマ娘ガチャとサポカガチャは別カウントです。"},
+ {n:"プロジェクトセカイ（PU★4）",c:"part",cfg:{name:"プロセカ PU★4",mode:"point",pRate:0.5,hard:300},
+  t:"★4全体3%、PU対象は1人あたり0.5%（2人PUの表記）。ガチャシール300枚（1連1枚）でPU1体と交換。100連で★4確定（無償は割引）の仕組みは未反映。"},
+ {n:"学園アイドルマスター（PU）",c:"ok",cfg:{name:"学マス PU",mode:"point",pRate:0.75,hard:200},
+  t:"PアイドルPUは0.75%、PUサポカは1.0%。200連（200Pt）でPUを選んで交換。ピックアップが更新されるとポイントは別のものに変換されます。"},
+ {n:"勝利の女神：NIKKE（PU）",c:"part",cfg:{name:"NIKKE PU",mode:"point",pRate:2,hard:200},
+  t:"SSR全体は4%。PU単体2%は、ある期間限定ピックアップ（目玉1体）の例で、募集ごとに違う場合があります。200連でゴールドマイレージ200枚＝PUと交換。"},
+ {n:"アークナイツ：エンドフィールド",c:"part",cfg:{name:"エンドフィールド 限定★6",mode:"reset",base:0.8,hard:80,softStart:65,softInc:5,tRate:50,gRate:100,guarOn:true},
+  t:"★6は0.8%、65連目から+5%ずつ上がり、80連で確定。限定は50%で、外れると次は確定として計算。実際は最大120連で確定する仕様が別記事にあり、その上限は未反映（この設定では最大160連）。"},
+ {n:"アークナイツ（限定スカウト）",c:"part",cfg:{name:"アークナイツ 限定★6",mode:"reset",base:2,hard:99,softStart:51,softInc:2,tRate:70,gRate:70,guarOn:false},
+  t:"★6は2%、50連で出なければ上昇、99連で確定。限定の★6は70%がPU対象（2体PUなら1体あたり約35%）。すり抜けの確定はなし。上昇幅+2%は記事に記載なく、一般に知られる値を使用。300連の交換は未反映。"},
+ {n:"リバース：1999（PU6★）",c:"ok",cfg:{name:"リバース1999 PU6★",mode:"reset",base:1.5,hard:70,softStart:61,softInc:2.5,tRate:50,gRate:100,guarOn:true},
+  t:"★6は1.5%。61連目に4%、以降+2.5%ずつ上がり、70連で確定。PUは50%で、外れると次は確定（最大140連）。1つのサイトの数値です。"},
+ {n:"ペルソナ5X（限定キャラ）",c:"low",cfg:{name:"P5X 限定キャラ",mode:"reset",base:0.8,hard:80,softStart:0,softInc:0,tRate:50,gRate:100,guarOn:true},
+  t:"★5は0.8%、80連で確定、PU50%で外れると次は確定。確率が上がり始める回数は記載がなく、ソフト天井なしとして計算（実際は低めに出ます）。ゲーム内の表示で確認してください。"},
+ {n:"ドールズフロントライン2（キャラ）",c:"low",cfg:{name:"ドルフロ2 PUキャラ",mode:"reset",base:0.6,hard:80,softStart:59,softInc:5,tRate:50,gRate:100,guarOn:true},
+  t:"SSRは0.6%、80連で確定、PU50%で外れると次は確定（最大160連）。59連目から確率上昇するが上昇幅は記載なしで、+5%は仮置き。武器ガチャは別仕様（0.7%・70連・PU75%）。"},
+ {n:"ステラソラ（PUキャラ）",c:"part",cfg:{name:"ステラソラ PU★5",mode:"point",pRate:1,hard:160},
+  t:"★5は2%でPUは1.0%（50%）。160連でPU★5が確定、PUを引くと天井リセット。120連でPUが確定する「スペシャル採用」は期間中1回のみで未反映。ソフト天井の記載はなし。"},
+ {n:"パニシング：グレイレイヴン（キャラ）",c:"low",cfg:{name:"パニグレ PUキャラ",mode:"reset",base:0.5,hard:60,softStart:0,softInc:0,tRate:70,gRate:70,guarOn:false},
+  t:"Sランクは0.5%、60連で保証、PUは70%。リセット条件について記事内で記述が食い違うため、要確認。変動保証バナー（1.5%・80〜100連）は別仕様です。"},
+ {n:"ドラゴンクエストウォーク（限定装備）",c:"low",cfg:{name:"DQウォーク PU装備",mode:"point",pRate:0.5,hard:100},
+  t:"PU装備は1種あたり0.5%（4種で計2%）。ジェム10連のスタンプ報酬で「100連でピックアップ確定」。2022年の古い記事の数値のため、現在の仕様とは違う可能性があります。"},
+ {n:"ヘブンバーンズレッド（PUスタイル）",c:"low",cfg:{name:"ヘブバン PUSS",mode:"point",pRate:1.5,hard:200},
+  t:"SSは全体3%。200回でPUのSSを確実に入手できる交換ポイント式。PU単体の確率は確認できず、1.5%は仮置きです。ゲーム内の提供割合で確認してください。"}
+
+];
+const CONF={ok:"確認済み",part:"一部推定",low:"要確認"};
+function syncInputs(){
+  Object.keys(cfgMap).forEach(k=>{$(k).value=S.cfg[k]});
+  $("mode").value=S.cfg.mode;$("guarOn").checked=S.cfg.guarOn;}
+function renderPreset(){
+  const sel=$("preset"),n=$("pnote"),i=S.preset;
+  sel.value=(i===undefined||i==="")?"":String(i);
+  if(i===undefined||i===""||!PRESETS[i]){n.classList.remove("show");n.innerHTML="";return}
+  const p=PRESETS[i];
+  n.innerHTML=`<span class="tag">${CONF[p.c]}</span>${p.t}<br><span style="color:var(--sub)">細かい数値は下の欄で直せます。公式の提供割合と違うときはそちらを優先してください。</span>`;
+  n.classList.add("show");}
+function buildPresets(){
+  $("preset").innerHTML='<option value="">選んでください（手動設定のまま）</option>'+PRESETS.map((p,i)=>`<option value="${i}">${p.n}｜${CONF[p.c]}</option>`).join("");
+  $("preset").onchange=e=>{
+    const v=e.target.value;
+    if(v===""){S.preset="";save();renderPreset();return}
+    const p=PRESETS[+v];
+    Object.assign(S.cfg,p.cfg);S.preset=+v;
+    S.st={total:0,pity:0,guar:false,got:false};S.hist=[];
+    syncInputs();save();render();
+    $("changes").innerHTML="<div><b>"+p.n+"の設定にしました</b></div><div>回数・天井カウント・保証は0にリセットしました</div>";
+    $("changes").classList.add("show");}}
+buildPresets();
+render();
+</script>
+</body>
+</html>
